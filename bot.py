@@ -79,7 +79,7 @@ async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1
     # await interaction.followup.send("Response disabled while testing")
     # await interaction.delete_original_response()
 
-@tree.command(name = "graph_leaderboard", description = "Plot the most active users over time ", guild=discord.Object(id=GUILD_ID))
+@tree.command(name = "graph_activity", description = "Plot the most active users over time ", guild=discord.Object(id=GUILD_ID))
 async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1000000000000, window: int = 1500, n: int = 10):
     await interaction.response.defer()
     channel = interaction.channel
