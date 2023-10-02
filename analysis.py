@@ -86,6 +86,68 @@ def get_user_count(messages, min = 0, max = 1e20):
     users = sorted(users.items(), key=lambda x: x[1], reverse=True)
     return users
 
+def get_user_trend(messages, window = 1500, min = 0, max = 1e20):
+    #this function plots which users are sending the most numbers over time
+    #returns a dictionary indexed by user containing an array which plots the percentage of numbers sent by that user as a moving average.
+    users = get_user_count(messages, min, max)
+    trends = {}
+    for user in users:
+        trends[user[0]] = []
+    moving_msg_counts = {}
+    numbers = get_range(messages,min,max)
+    for user in users:
+        #count the number of messages sent by each user in the first window
+        moving_msg_counts[user[0]] = sum([1 for number in numbers[:window] if number[2]['author'] == user[0]])
+    for i in range(len(numbers)-window):
+        #get the message which is leaving the window
+        leaving = numbers[i]
+        #get the message which is entering the window
+        entering = numbers[i+window]
+        #update the moving message count
+        moving_msg_counts[leaving[2]['author']] -= 1
+        moving_msg_counts[entering[2]['author']] += 1
+        #get the total number of messages in the window
+        total = sum([moving_msg_counts[user[0]] for user in users])
+        #add the percentage of messages sent by each user to the trends
+        for user in users:
+            trends[user[0]].append(moving_msg_counts[user[0]]/total)
+    return trends
+
+def monotonise(x,threshold = 10):
+    #loop over the numbers maintaining a moving average. If the number is more than threshold away from the average, replace it with 1 more than the previous number
+    avg = sum(x[:10])/10
+    for i in range(1,len(x)):
+        if abs(x[i] - avg) > threshold:
+            x[i] = x[i-1] + 1
+        avg = (avg*10 - x[i-10] + x[i])/10
+    return x
+
+def graph_user_trend(messages, window = 1500, minimum = 0, max = 1e20, n_users = 10):
+    #plot the user trends
+    trends = get_user_trend(messages, window, minimum, max)
+    #get the users
+    users = get_user_count(messages, minimum, max)
+    #get the number of windows
+    numbers = get_range(messages, minimum, max)
+    x = monotonise([number[1] for number in numbers[window:]],threshold=0.01*len(numbers))
+    #plot the users
+    fig, ax = plt.subplots()
+    for i in range(min(n_users,len(users))):
+        plt.plot(x,trends[users[i][0]], label = "​ "+users[i][0])
+    plt.legend(prop={'size': 6})
+    plt.xlabel("Count")
+    plt.ylabel("Fraction of Numbers Sent")
+    start = numbers[0][0]
+    end = numbers[-1][0]
+    n = 11
+    tick = date_ticker(start,end)
+    topax = ax.secondary_xaxis('top', functions = (lambda n : (n-x[0])/(x[-1]-x[0]),lambda n: x[0] + n*(x[-1]-x[0])))
+    topax.set_xticks(np.linspace(0,1,n),[tick(percent) for percent in np.linspace(0,1,n)])
+    topax.set_xlabel('Time')
+    plt.savefig('graph.png')
+    plt.clf()
+    return discord.File('graph.png')
+
 def format_user_count(messages, minimum = 0, maximum = 1e20,n_users = 10):
     res = ">>> "
     users = get_user_count(messages, minimum, maximum)
@@ -97,20 +159,7 @@ def format_user_count(messages, minimum = 0, maximum = 1e20,n_users = 10):
         res += f"{i}. {user[0]}: {user[1]} = {user[1]/N*100:.2f}%" + '\n'
     return res
 
-
-def graph(messages, min = 0, max = 1e20):
-    #plot the numbers over time
-    numbers = get_range(messages,min,max)
-    x = [number[0] for number in numbers]
-    y = [number[1] for number in numbers]
-    x = [(time - x[0])/(x[-1]-x[0]) for time in x]
-    plt.plot(x,y)
-    plt.title("Numbers Counted Over Time")
-    plt.xlabel("Time")
-    plt.ylabel("Number")
-    #label the start and end dates
-    start = numbers[0][0]
-    end = numbers[-1][0]
+def date_ticker(start,end):
     tick = lambda percent : datetime.datetime.fromtimestamp(start + (end-start)*percent).strftime('%m/%y')
     #if start and end are within 3 months, label with day/month
     if end - start < 3*30*24*60*60:
@@ -118,7 +167,26 @@ def graph(messages, min = 0, max = 1e20):
     #if start and end are within 3 days, label with hour
     if end - start < 3*24*60*60:
         tick = lambda percent : datetime.datetime.fromtimestamp(start + (end-start)*percent).strftime('%H:%M')
+    return tick
+
+def graph(messages, min = 0, max = 1e20,connect = True):
+    #plot the numbers over time
+    numbers = get_range(messages,min,max)
+    x = [number[0] for number in numbers]
+    y = [number[1] for number in numbers]
+    x = [(time - x[0])/(x[-1]-x[0]) for time in x]
+    if connect:
+        plt.plot(x,y)
+    else:
+        plt.scatter(x,y)
+    plt.title("Numbers Counted Over Time")
+    plt.xlabel("Time")
+    plt.ylabel("Number")
+    #label the start and end dates
+    start = numbers[0][0]
+    end = numbers[-1][0]
     n = 11
+    tick = date_ticker(start,end)
     plt.xticks(np.linspace(0,1,n),[tick(percent) for percent in np.linspace(0,1,n)])
     plt.savefig('graph.png')
     plt.clf()
@@ -128,4 +196,4 @@ if __name__ == "__main__":
     with open('cache.json', 'r') as f:
         cache = json.load(f)
         messages = cache['messages']
-        print(format_user_count(messages))
+        graph_user_trend(messages,1500)

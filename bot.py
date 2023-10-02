@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 import datetime
 import json
-from analysis import graph, format_user_count
+from analysis import graph, format_user_count, graph_user_trend
 token = ""
 GUILD_ID = 584392285039624219
 CHANNEL_ID = 933321018355884033
@@ -66,14 +66,28 @@ async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1
     await interaction.followup.send(response_text)
 
 @tree.command(name = "graph_count", description = "Graph numbers counted over time", guild=discord.Object(id=GUILD_ID))
-async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1000000000000):
+async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1000000000000, connect: bool = True):
     await interaction.response.defer()
     channel = interaction.channel
     if channel_hardcoded:
         channel = client.get_channel(CHANNEL_ID)
     #get messages from channel
     messages = await get_messages(channel)
-    graphFile = graph(messages,min,max)
+    graphFile = graph(messages,min,max, connect)
+    #send message in channel
+    await interaction.followup.send("", file = graphFile)
+    # await interaction.followup.send("Response disabled while testing")
+    # await interaction.delete_original_response()
+
+@tree.command(name = "graph_leaderboard", description = "Plot the most active users over time ", guild=discord.Object(id=GUILD_ID))
+async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1000000000000, window: int = 1500, n: int = 10):
+    await interaction.response.defer()
+    channel = interaction.channel
+    if channel_hardcoded:
+        channel = client.get_channel(CHANNEL_ID)
+    #get messages from channel
+    messages = await get_messages(channel)
+    graphFile = graph_user_trend(messages,window,min,max,n)
     #send message in channel
     await interaction.followup.send("", file = graphFile)
     # await interaction.followup.send("Response disabled while testing")
