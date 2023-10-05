@@ -55,19 +55,19 @@ async def get_messages(channel):
     return new_messages
 
 @tree.command(name = "count_rankings", description = "Who is the best at counting?", guild=discord.Object(id=GUILD_ID))
-async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1000000000000, n: int = 10):
-    await interaction.response.defer()
+async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1000000000000, n: int = 10, ephemeral: bool = True):
+    await interaction.response.defer(ephemeral=ephemeral)
     channel = interaction.channel
     if channel_hardcoded:
         channel = client.get_channel(CHANNEL_ID)
     #get messages from channel
     messages = await get_messages(channel)
     response_text = format_user_count(messages,min,max,n)
-    await interaction.followup.send(response_text)
+    await interaction.followup.send(response_text,ephemeral = ephemeral)
 
 @tree.command(name = "graph_count", description = "Graph numbers counted over time", guild=discord.Object(id=GUILD_ID))
-async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1000000000000, connect: bool = True):
-    await interaction.response.defer()
+async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1000000000000, connect: bool = True, ephemeral: bool = True):
+    await interaction.response.defer(ephemeral=ephemeral)
     channel = interaction.channel
     if channel_hardcoded:
         channel = client.get_channel(CHANNEL_ID)
@@ -75,21 +75,21 @@ async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1
     messages = await get_messages(channel)
     graphFile = graph(messages,min,max, connect)
     #send message in channel
-    await interaction.followup.send("", file = graphFile)
+    await interaction.followup.send("", file = graphFile,ephemeral = ephemeral)
     # await interaction.followup.send("Response disabled while testing")
     # await interaction.delete_original_response()
 
 @tree.command(name = "graph_activity", description = "Plot the most active users over time ", guild=discord.Object(id=GUILD_ID))
-async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1000000000000, window: int = 1500, n: int = 10):
-    await interaction.response.defer()
+async def on_message(interaction: discord.Interaction,min: int = 0, max: int = 1000000000000, window: int = 1500, n: int = 10, user: str = "all", ephemeral: bool = True):
+    await interaction.response.defer(ephemeral = ephemeral)
     channel = interaction.channel
     if channel_hardcoded:
         channel = client.get_channel(CHANNEL_ID)
     #get messages from channel
     messages = await get_messages(channel)
-    graphFile = graph_user_trend(messages,window,min,max,n)
+    graphFile = graph_user_trend(messages,window,min,max,n,user)
     #send message in channel
-    await interaction.followup.send("", file = graphFile)
+    await interaction.followup.send("", file = graphFile, ephemeral = ephemeral)
     # await interaction.followup.send("Response disabled while testing")
     # await interaction.delete_original_response()
 

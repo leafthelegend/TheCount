@@ -122,7 +122,7 @@ def monotonise(x,threshold = 10):
         avg = (avg*10 - x[i-10] + x[i])/10
     return x
 
-def graph_user_trend(messages, window = 1500, minimum = 0, max = 1e20, n_users = 10):
+def graph_user_trend(messages, window = 1500, minimum = 0, max = 1e20, n_users = 10,user = "all"):
     #plot the user trends
     trends = get_user_trend(messages, window, minimum, max)
     #get the users
@@ -132,8 +132,11 @@ def graph_user_trend(messages, window = 1500, minimum = 0, max = 1e20, n_users =
     x = monotonise([number[1] for number in numbers[window:]],threshold=0.01*len(numbers))
     #plot the users
     fig, ax = plt.subplots()
-    for i in range(min(n_users,len(users))):
-        plt.plot(x,trends[users[i][0]], label = "​ "+users[i][0])
+    if user == "all" or user not in trends:
+        for i in range(min(n_users,len(users))):
+            plt.plot(x,trends[users[i][0]], label = "​ "+users[i][0])
+    else:
+        plt.plot(x,trends[user], label = "​ "+user)
     plt.legend(prop={'size': 6})
     plt.xlabel("Count")
     plt.ylabel("Fraction of Numbers Sent")
@@ -196,4 +199,4 @@ if __name__ == "__main__":
     with open('cache.json', 'r') as f:
         cache = json.load(f)
         messages = cache['messages']
-        graph_user_trend(messages,1500)
+        graph_user_trend(messages,user = "_leaf_l")
